@@ -1,0 +1,215 @@
+package ups.edu.ec.controlador;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import javax.swing.table.DefaultTableModel;
+import ups.edu.ec.Gasto;
+import ups.edu.ec.Ingreso;
+import ups.edu.ec.Persona;
+
+/**
+ *
+ * @author cristianzhiminaicela
+ */
+public class conexion {
+    
+    private Connection conecta;
+    private ResultSet rs;
+    private ResultSetMetaData rsm;
+    DefaultTableModel modeloTabla;
+    Persona usuario=null;
+    
+    public Boolean realizaConexion(){
+
+            try {
+                conecta = DriverManager.getConnection("jdbc:postgresql://localhost:5432/gestion",
+                                                        "postgres","zhimi");
+               
+                if (conecta != null) {
+                    System.out.println("EXITO EN LA CONEXION");
+                    return true;
+                }
+                    
+                } catch (SQLException e) {
+                    System.out.println("Error de  conexion: "+e.getMessage());
+                    
+                }
+                return false;
+    }
+    
+    
+    public void cerrarConexion() {
+        try {
+            conecta.close();
+            System.out.println("cerrada conexion");
+        } catch (SQLException e) {
+            System.out.println("No se ha podido cerrar" + e);
+        }
+    }
+
+    public boolean validar_ingreso(String user, String clave){
+        
+            this.getConecta();
+            String sql="SELECT * FROM login WHERE usuario=? and clave=? ";
+            ResultSet rst;
+            
+            try {
+            
+            PreparedStatement pstm=conecta.prepareStatement(sql);
+            pstm.setString(1, user);
+            pstm.setString(2, clave);
+            rst=pstm.executeQuery();
+            
+            if(rst.next()){
+            usuario=new Persona();
+            
+            usuario.setUsuario(rst.getString(1));
+            usuario.setClave(rst.getString(2));
+            return true;
+            }
+            rst.close();
+            pstm.close();
+            } catch (Exception e) {
+                
+                System.out.println("errorr"  +  e);
+            }
+            
+            return false;
+            
+    }
+    
+    public void registrarse(Persona unaPersona){
+        
+            //this.getConecta();
+            String sql="INSERT INTO login(usuario,clave) VALUES (?,?);";
+            ResultSet rst;
+            
+            try {  
+	    
+            PreparedStatement pstm=conecta.prepareStatement(sql);
+            pstm.setString(1, unaPersona.getUsuario());
+            pstm.setString(2, unaPersona.getClave());
+            pstm.executeQuery();
+            
+            pstm.close();
+             
+            } catch (SQLException e) {
+                 System.out.println("agregado ok");
+                //System.out.println("errorr al add nuevi usuario"  +  e);
+            }
+        
+    }
+    
+    //CRUDDD DE GASTOSSS...
+    
+    public void agregarGasto(Gasto unGasto){
+        
+            String sql="INSERT INTO gastos(id,valor,fecha,descripcion) VALUES (?,?,?,?);";
+            
+            try {  
+	    
+            PreparedStatement pstm=conecta.prepareStatement(sql);
+            pstm.setInt(1, unGasto.getGid());
+            pstm.setDouble(2, unGasto.getGvalor());
+            pstm.setString(3, unGasto.getGfecha());
+            pstm.setString(4, unGasto.getGdescripcion());
+            pstm.executeQuery();
+            pstm.close();
+             
+            } catch (SQLException e) {
+                 System.out.println("agregado ok");
+                //System.out.println("errorr al add nuevi usuario"  +  e);
+            }
+        
+    }
+    
+    public ArrayList<Object[]> cargarDatosGasto() throws SQLException {
+        this.realizaConexion();
+        String sql="SELECT id, valor, fecha, descripcion FROM public.gastos;";
+        
+        PreparedStatement ps = this.getConecta().prepareStatement(sql);
+        rs = ps.executeQuery();
+        rsm = rs.getMetaData();
+        ArrayList<Object[]> datos = new ArrayList<>();
+        while (rs.next()) {
+            Object[] filas = new Object[rsm.getColumnCount()];
+            for (int i = 0; i < filas.length; i++) {
+                filas[i] = rs.getObject(i + 1);
+               //System.out.println("arreglo filas[i] que da.. "+filas[i]);
+              // System.out.println(""+i);
+            }
+            datos.add(filas);
+        }
+        this.cerrarConexion();
+        return datos;
+        
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    //CRUD DE INGRESOSS.....
+  
+     public void agregarIngreso(Ingreso unIG){
+        
+            String sql="INSERT INTO ingresos(id,valor,fecha,descripcion) VALUES (?,?,?,?);";
+            
+            try {  
+	    
+            PreparedStatement pstm=conecta.prepareStatement(sql);
+            pstm.setInt(1, unIG.getIid());
+            pstm.setDouble(2, unIG.getIvalor());
+            pstm.setString(3, unIG.getIfecha());
+            pstm.setString(4, unIG.getIdescripcion());
+            pstm.executeQuery();
+            pstm.close();
+             
+            } catch (SQLException e) {
+                 System.out.println("agregado ok");
+                //System.out.println("errorr al add nuevi usuario"  +  e);
+            }
+        
+    }
+    
+     public ArrayList<Object[]> cargarDatosIngreso() throws SQLException {
+        
+         this.realizaConexion();
+         
+        String sql="SELECT id, valor, fecha, descripcion FROM public.ingresos;";
+        
+        PreparedStatement ps = this.getConecta().prepareStatement(sql);
+        rs = ps.executeQuery();
+        rsm = rs.getMetaData();
+        ArrayList<Object[]> datos = new ArrayList<>();
+        while (rs.next()) {
+            Object[] filas = new Object[rsm.getColumnCount()];
+            for (int i = 0; i < filas.length; i++) {
+                filas[i] = rs.getObject(i + 1);
+               //System.out.println("arreglo filas[i] que da.. "+filas[i]);
+              // System.out.println(""+i);
+            }
+            datos.add(filas);
+        }
+        this.cerrarConexion();
+        return datos;
+        
+    }
+     
+
+    public Connection getConecta() {
+        return conecta;
+    }
+
+    public void setConecta(Connection conecta) {
+        this.conecta = conecta;
+    }
+}
